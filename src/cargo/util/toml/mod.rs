@@ -2265,7 +2265,7 @@ supported tools: {}",
         if tool == "cargo" && !gctx.cli_unstable().cargo_lints {
             warn_for_cargo_lint_feature(gctx, warnings);
         }
-        for name in lints.keys() {
+        for (name, config) in lints {
             if let Some((prefix, suffix)) = name.split_once("::") {
                 if tool == prefix {
                     anyhow::bail!(
@@ -2277,6 +2277,16 @@ supported tools: {}",
                     )
                 } else {
                     anyhow::bail!("`lints.{tool}.{name}` is not a valid lint name")
+                }
+            } else if let Some(config) = config.config() {
+                for config_name in config.keys() {
+                    // manually report unused manifest key, except for `rust.unexpected_cfgs.check-cfg`
+                    if !(tool == "rust" && name == "unexpected_cfgs" && config_name != "check-cfg")
+                    {
+                        let message =
+                            format!("unused manifest key: `lints.{tool}.{name}.{config_name}`");
+                        warnings.push(message);
+                    }
                 }
             }
         }
